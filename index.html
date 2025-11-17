@@ -811,25 +811,15 @@ function enableCountingMode() {
         const card = document.createElement("div");
         card.className = "card option-card";
         card.dataset.id = item.id;
-
-        const t = document.createElement("div");
-        t.className = "card-title";
-        t.textContent = none;
-
+       
         const imgDiv = document.createElement("div");
         imgDiv.className = "card-image";
         const img = document.createElement("img");
         img.src = `assets/${item.id}_s.png`;
         img.alt = item.tr;
         imgDiv.appendChild(img);
-
-        const sub = document.createElement("div");
-        sub.className = "card-subtitle";
-        sub.textContent = none;
-
-        card.appendChild(t);
+               
         card.appendChild(imgDiv);
-        card.appendChild(sub);
         optionsRow.appendChild(card);
       });
     }
