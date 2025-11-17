@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gölge Eşleme Oyunu - Pika & Berk</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui;
+      background: linear-gradient(135deg, #79c2ff, #cfe9ff);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* MENÜ */
+    #menuScreen {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      background: radial-gradient(circle at top, #ffffffaa, transparent 60%),
+                  linear-gradient(135deg, #4ea3ff, #8cd3ff);
+    }
+
+    .menu-card {
+      background: #ffffffee;
+      border-radius: 24px;
+      padding: 32px 40px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.18);
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+    }
+
+    .mode-button {
+      width: 100%; padding: 12px;
+      margin: 6px 0; border: none;
+      border-radius: 999px; cursor: pointer;
+      font-weight: 600; font-size: 16px;
+      background: linear-gradient(135deg, #4da3ff, #6cc6ff);
+      color: white;
+    }
+
+    /* OYUN */
+    #gameScreen { width:100%; height:100%; padding:20px; position:relative; }
+
+    #instructionBox {
+      position: absolute; left:20px; bottom:20px;
+      padding:12px 18px; background:white;
+      border-radius:14px; border:2px solid black;
+      font-weight:700;
+    }
+
+    #optionsRow {
+      position:absolute; top:60px; left:50%;
+      transform:translateX(-50%);
+      display:flex; gap:24px;
+    }
+
+    .card {
+      width:150px; height:220px;
+      background:white; border-radius:20px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.2);
+      display:flex; flex-direction:column;
+      align-items:center; padding:10px;
+      user-select:none;
+    }
+
+    .card img { max-width:100%; max-height:130px; }
+
+    #dragArea {
+      position:absolute; top:340px; left:50%;
+      transform:translateX(-50%);
+    }
+
+    #dragCard { cursor:grab; transition:0.25s; }
+
+    .correct { box-shadow:0 0 0 3px #28a745; }
+    .wrong { box-shadow:0 0 0 3px #ff3b30; }
+
+    /* Semboller */
+    #symbolBar {
+      position:absolute; bottom:20px; left:50%;
+      transform:translateX(-50%);
+      background:white; padding:6px 12px;
+      border-radius:14px;
+      display:flex; gap:6px;
+    }
+
+    #symbolBoard {
+      position:absolute; bottom:20px; right:20px;
+      width:340px; height:110px;
+      background:white; border-radius:16px;
+      display:flex; justify-content:center; align-items:center;
+      gap:8px;
+    }
+
+    .bar-star { font-size:22px; opacity:0.5; }
+    .bar-star.active { opacity:1; }
+
+    .board-star {
+      font-size:34px; opacity:0.3;
+    }
+    .board-star.filled { opacity:1; }
+  </style>
+</head>
+
+<body>
+
+  <!-- MENÜ -->
+  <div id="menuScreen">
+    <div class="menu-card">
+      <h2>🌙 GÖLGE EŞLEME OYUNU</h2>
+      <p>Bir mod seç ve oyuna başla</p>
+
+      <button class="mode-button" data-choices="2">2 Seçenek</button>
+      <button class="mode-button" data-choices="3">3 Seçenek</button>
+      <button class="mode-button" data-choices="4">4 Seçenek</button>
+      <button class="mode-button" data-choices="5">5 Seçenek</button>
+      <button class="mode-button" data-choices="7">7 Seçenek</button>
+    </div>
+  </div>
+
+  <!-- OYUN -->
+  <div id="gameScreen" class="hidden">
+
+    <div id="instructionBox">👉 GÖLGESİNİ BUL</div>
+
+    <div id="optionsRow"></div>
+
+    <div id="dragArea">
+      <div id="dragCard" class="card">
+        <div class="card-title" id="dragTitle"></div>
+        <img id="dragImage" src="" alt="">
+      </div>
+    </div>
+
+    <div id="symbolBar"></div>
+    <div id="symbolBoard"></div>
+
+  </div>
+
+<script>
+/* ------------------------------------
+    ITEM LİSTESİ (40 ADET)
+------------------------------------ */
+const items = [
+  { id:"armut", tr:"ARMUT" },
+  { id:"elma", tr:"ELMA" },
+  { id:"uzum", tr:"ÜZÜM" },
+  { id:"kiraz", tr:"KİRAZ" },
+  { id:"muz", tr:"MUZ" },
+  { id:"karpuz", tr:"KARPuz"},
+  { id:"cilek", tr:"ÇİLEK" },
+  { id:"nar", tr:"NAR" },
+  { id:"ejdermeyvesi", tr:"EJDER MEYVESİ" },
+  { id:"portakal", tr:"PORTAKAL" },
+
+  { id:"salatalik", tr:"SALATALIK" },
+  { id:"biber", tr:"BİBER" },
+  { id:"dolmabiber", tr:"DOLMA BİBER" },
+  { id:"kereviz", tr:"KEREVİZ" },
+  { id:"patlican", tr:"PATLICAN" },
+  { id:"sarimsak", tr:"SARIMSAK" },
+  { id:"misir", tr:"MISIR" },
+  { id:"balkabagi", tr:"BALKABAĞI" },
+  { id:"brokoli", tr:"BROKOLİ" },
+  { id:"pirasa", tr:"PIRASA" },
+
+  { id:"kopek", tr:"KÖPEK" },
+  { id:"kedi", tr:"KEDİ" },
+  { id:"kus", tr:"KUŞ" },
+  { id:"inek", tr:"İNEK" },
+  { id:"aslan", tr:"ASLAN" },
+  { id:"at", tr:"AT" },
+  { id:"yilan", tr:"YILAN" },
+  { id:"timsah", tr:"TİMSAH" },
+  { id:"tavsan", tr:"TAVŞAN" },
+  { id:"kaplumbaga", tr:"KAPLUMBAĞA" },
+
+  { id:"masa", tr:"MASA" },
+  { id:"kalem", tr:"KALEM" },
+  { id:"dismacunu", tr:"DİŞ MACUNU" },
+  { id:"disfircasi", tr:"DİŞ FIRÇASI" },
+  { id:"radyo", tr:"RADYO" },
+  { id:"caydanlik", tr:"ÇAYDANLIK" },
+  { id:"fincan", tr:"FİNCAN" },
+  { id:"canta", tr:"ÇANTA" },
+  { id:"silgi", tr:"SİLGİ" },
+  { id:"damacana", tr:"DAMACANA" }
+];
+
+/* ------------------------------------
+   ELEMENTLER
+------------------------------------ */
+const menuScreen = document.getElementById("menuScreen");
+const gameScreen = document.getElementById("gameScreen");
+const optionsRow = document.getElementById("optionsRow");
+const dragCard = document.getElementById("dragCard");
+const dragTitle = document.getElementById("dragTitle");
+const dragImage = document.getElementById("dragImage");
+const symbolBar = document.getElementById("symbolBar");
+const symbolBoard = document.getElementById("symbolBoard");
+
+let currentChoices = 3;
+let currentTarget = null;
+let currentOptions = [];
+let earned = 0;
+const MAX = 8;
+
+document.querySelectorAll(".mode-button").forEach(b=>{
+  b.onclick = ()=>{
+    currentChoices = parseInt(b.dataset.choices);
+    menuScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+    initSymbols();
+    newRound();
+  }
+});
+
+/* ------------------------------------
+    SEMBOL SİSTEMİ
+------------------------------------ */
+function initSymbols() {
+  earned = 0;
+  symbolBar.innerHTML="";
+  symbolBoard.innerHTML="";
+  for (let i=0;i<MAX;i++){
+    let b=document.createElement("span");
+    b.className="bar-star active";
+    b.textContent="⭐";
+    symbolBar.appendChild(b);
+
+    let s=document.createElement("span");
+    s.className="board-star";
+    s.textContent="⭐";
+    symbolBoard.appendChild(s);
+  }
+}
+
+function addSymbol() {
+  earned++;
+  const barStars = symbolBar.children;
+  const boardStars = symbolBoard.children;
+
+  if (earned <= MAX) {
+    barStars[MAX-earned].classList.remove("active");
+    boardStars[earned-1].classList.add("filled");
+  }
+}
+
+/* ------------------------------------
+    OYUN MANTIĞI
+------------------------------------ */
+function newRound() {
+  currentTarget = items[Math.floor(Math.random()*items.length)];
+
+  dragTitle.textContent = currentTarget.tr;
+  dragImage.src = `assets/${currentTarget.id}.png`;
+
+  const others = items.filter(i=>i.id!==currentTarget.id);
+  currentOptions = shuffle([currentTarget, ...others.slice(0,currentChoices-1)]);
+  currentOptions = shuffle(currentOptions);
+
+  renderOptions();
+  resetDrag();
+}
+
+function renderOptions() {
+  optionsRow.innerHTML="";
+  currentOptions.forEach(item=>{
+    const c=document.createElement("div");
+    c.className="card option-card";
+    c.dataset.id = item.id;
+
+    const img=document.createElement("img");
+    img.src = `assets/${item.id}_s.png`;
+    c.appendChild(img);
+
+    optionsRow.appendChild(c);
+  });
+}
+
+/* ------------------------------------
+    DRAG – DROP
+------------------------------------ */
+let dragging=false, sx=0, sy=0, stx=0, sty=0;
+
+dragCard.onpointerdown = e =>{
+  dragging=true;
+  dragCard.setPointerCapture(e.pointerId);
+
+  const m = new DOMMatrixReadOnly(getComputedStyle(dragCard).transform);
+  stx = m.m41; sty = m.m42;
+
+  sx=e.clientX; sy=e.clientY;
+  dragCard.style.transition="0s";
+}
+
+dragCard.onpointermove = e =>{
+  if(!dragging) return;
+  let dx=e.clientX-sx, dy=e.clientY-sy;
+  dragCard.style.transform = `translate(${stx+dx}px, ${sty+dy}px)`;
+}
+
+dragCard.onpointerup = e =>{
+  dragging=false;
+  dragCard.releasePointerCapture(e.pointerId);
+  checkDrop();
+}
+
+function resetDrag() {
+  dragCard.style.transition="0.25s";
+  dragCard.style.transform="translate(0px,0px)";
+}
+
+function checkDrop() {
+  const d = dragCard.getBoundingClientRect();
+  let found=null;
+
+  document.querySelectorAll(".option-card").forEach(c=>{
+    const r=c.getBoundingClientRect();
+    const overlap = !(d.right<r.left || d.left>r.right || d.bottom<r.top || d.top>r.bottom);
+    if (overlap) found=c;
+  });
+
+  if (!found) return wrong();
+
+  if (found.dataset.id === currentTarget.id) correct(found);
+  else wrong();
+}
+
+function wrong() {
+  dragCard.classList.add("wrong");
+  setTimeout(()=>{
+    dragCard.classList.remove("wrong");
+    resetDrag();
+  },300);
+}
+
+function correct(card) {
+  dragCard.classList.add("correct");
+  card.classList.add("correct");
+
+  addSymbol();
+
+  setTimeout(()=>{
+    dragCard.classList.remove("correct");
+    card.classList.remove("correct");
+    newRound();
+  },450);
+}
+
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+</script>
+
+</body>
+</html>
